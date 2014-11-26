@@ -4,44 +4,17 @@
 		<title>Asteroids</title>
 		<style>
 			body {
-				background-color: white;
+				margin: 0;
 			}
-			#gameCanvas {
-				background-color: white;
-				width: 1000px;
-				height: 600px;
-				margin: auto;
-				align: center;
-			}
-			#scoreboard {
-				text-align: center;
-				font-family: Segoe UI, Helvetica, Ubuntu, sans-serif;
-			}
-			#score {
-				font-size:300%; 
-				padding:0; 
-				margin:0;
-			}
-			#title {
-				text-align: center;
-				background-color: white;
-				color: black;
+			canvas {
+				width: 100%;
+				height: 100%;
 			}
 		</style>
 	</head>
 	<body onload='setup();'>
-		<h1 id='title'>ASTEROIDS</h1>
-		<div id='gameCanvas'></div>
 		<script src='./Scripts/three.min.js'></script>
 		<script src='./Scripts/keyboard.js'></script>
 		<script src='./Scripts/game.js'></script>
-		<div id='scoreboard'>
-			<h1 id='score'>0</h1>
-			<h2 id='winnerBoard'>"Never tell me the odds!" - Han Solo</h2>
-			<h3>A = move left
-			<br>D = move right
-			<br>S = move down
-			<br>W = move up</h3>
-		</div>
 	</body>
 </html>

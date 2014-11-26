@@ -19,15 +19,49 @@ var playerSpeed = 1.7,
 	playerDY = 0,  // up + down
 	playerDZ = 0;  // forwards + backwards
 
-var sprites = [];
-	spriteMinRadius = 20,
-	spriteMaxRadius = 150,
-	spriteSpeed = 60;
+var spheres = [],
+	sphereQuality = 7;
+	sphereMinRadius = 20,
+	sphereMaxRadius = 150,
+	sphereSpeed = 60;
 
-var playerModel, spriteModel;
+var playerModel, sphereModel;
+
+// one vector for each direction, for collision detection
+var rays = [   
+		new THREE.Vector3(0, 0, 1),   // +Z
+		//new THREE.Vector3(1, 0, 1),
+		new THREE.Vector3(1, 0, 0),   // >
+		//new THREE.Vector3(1, 0, -1),
+		new THREE.Vector3(0, 0, -1),  // -Z
+		//new THREE.Vector3(-1, 0, -1),
+		new THREE.Vector3(-1, 0, 0),  // <
+		//new THREE.Vector3(-1, 0, 1),
+		//new THREE.Vector3(0, 1, 1),
+		//new THREE.Vector3(1, 1, 1),
+		//new THREE.Vector3(1, 1, 0),  // 10
+		//new THREE.Vector3(1, 1, -1),
+		//new THREE.Vector3(0, 1, -1),
+		//new THREE.Vector3(-1, 1, -1),
+		//new THREE.Vector3(-1, 1, 0),
+		//new THREE.Vector3(-1, 1, 1),
+		new THREE.Vector3(0, 1, 0),    // ^
+		//new THREE.Vector3(1, -1, 0),
+		//new THREE.Vector3(0, -1, 1),
+		//new THREE.Vector3(1, -1, 1),
+		//new THREE.Vector3(1, -1, 0),   // 20
+		//new THREE.Vector3(1, -1, -1),
+		//new THREE.Vector3(0, -1, -1),
+		//new THREE.Vector3(-1, -1, -1),
+		//new THREE.Vector3(-1, -1, 0),
+		//new THREE.Vector3(-1, -1, 1),
+		new THREE.Vector3(0, -1, 0)   // \/
+	];
+var caster = new THREE.Raycaster();
 
 var score = 0;
-
+var collisionDetected = false;
+var isGameOver = false;
 
 ///////////////////////////////////////////////////////
 
@@ -37,16 +71,14 @@ function setup() {
 }
 
 function createScene() {
-	var WIDTH = 1000,
-	    HEIGHT = 600;
+	var WIDTH = window.innerWidth,
+	    HEIGHT = window.innerHeight;
 
 	// set up camera vars
 	var VIEW_ANGLE = 45,
 		ASPECT = WIDTH / HEIGHT,
 		NEAR = 0.1,
 		FAR = 10000;
-
-	var c = document.getElementById("gameCanvas");
 
 	renderer = new THREE.WebGLRenderer(
 			{antialias: true}
@@ -67,7 +99,7 @@ function createScene() {
 
 	renderer.setSize(WIDTH, HEIGHT);
 
-	c.appendChild(renderer.domElement);
+	document.body.appendChild(renderer.domElement);
 
 	// set up and position player
 	var playerMaterial = 
@@ -83,11 +115,13 @@ function createScene() {
 			playerQuality,
 			playerQuality),
 		playerMaterial);
+	console.log("Player vertices: ", playerModel.geometry.vertices);
 
 	scene.add(playerModel);
 	playerModel.position.x = 0;
 	playerModel.position.y = 0;
 	playerModel.position.z = 50;
+	console.log("Player position is " , playerModel.position);
 
 	// set up and position a point of light
 	pointLight1 = new THREE.PointLight(0xF8D898);
@@ -106,8 +140,6 @@ function createScene() {
 	pointLight2.intensity = 3;
 	pointLight2.distance = 20000;
 	scene.add(pointLight2);
-
-
 }
 
 function draw() {	
@@ -116,10 +148,14 @@ function draw() {
 	// draw THREE.JS scene
 	renderer.render(scene, camera);
 
-	generateSprites();
-	handleKey();
-	movePlayer();
-	moveSprites();
+	if (!isGameOver) {
+		generateSpheres();
+		handleKey();  // updates player direction
+		movePlayer(); // moves player in direction
+		moveSpheres(); // moves spheres if no collisions
+		if (collisionDetected)
+			gameOver();
+	}
 }
 
 //Handles Key Events to update playerDX, DY, DZ
@@ -195,64 +231,91 @@ function movePlayer() {
 	playerModel.position.z += (playerDZ * playerSpeed);
 }
 
-// Generates asteroids + other sprites at random
-function generateSprites() {
+// Generates asteroids + other spheres at random
+function generateSpheres() {
 	// generate random number 1 - 100
 	var randNum = Math.floor(Math.random() * 
 		(100 - 1 + 1)) + 1;
 
-	// if randNum <= 40, generate a new sprite
+	// if randNum <= 40, generate a new sphere
 	if (randNum <= 40) {
-		// generate random X for the sprite
-		var spriteX = Math.floor(Math.random() * 
+		// generate random X for the sphere
+		var sphereX = Math.floor(Math.random() * 
 			(1000 - (-1000) + 1)) + (-1000);
-		// generate random Y for the sprite
-		var spriteY = Math.floor(Math.random() * 
+		// generate random Y for the sphere
+		var sphereY = Math.floor(Math.random() * 
 			(1000 - (-1000) + 1)) + (-1000);
-		// generate random radius for sprite model
+		// generate random radius for sphere model
 		var rad = Math.floor(Math.random() * 
-			(spriteMaxRadius - spriteMinRadius + 1)) 
-			+ spriteMinRadius;
+			(sphereMaxRadius - sphereMinRadius + 1)) 
+			+ sphereMinRadius;
 		
-		// assign some smaller sprites to be points instead of asteroids
+		// assign some smaller spheres to be points instead of asteroids
 		var isPoints = false;
-		var spriteMaterial = new THREE.MeshLambertMaterial(
-				{color: 0xCC5200,
-				wireframe: true}); // Orange/Brown
-		// criteria for sprite to be points:
-		if (randNum % 2 == 0 && rad <= spriteMaxRadius - 20 &&
-			rad >= spriteMinRadius + 20 &&
-			spriteY < 300 && spriteY > -100 &&
-			spriteX < 200 && spriteX > -200) {
-			spriteMaterial = new THREE.MeshLambertMaterial(
-				{color: 0xFF0066}); // pink
+		var sphereMaterial = new THREE.MeshLambertMaterial(
+				{color: 0xCC5200}); // Orange/Brown
+		// criteria for sphere to be points:
+		if (randNum % 2 == 0 && rad <= sphereMaxRadius - 20 &&
+			rad >= sphereMinRadius + 20 &&
+			sphereY < 300 && sphereY > -100 &&
+			sphereX < 200 && sphereX > -200) {
+			sphereMaterial = new THREE.MeshLambertMaterial(
+				{color: 0xFF0066});  // pink
 			isPoints = true;
 		}
 
-		// create the sprite model
-		var sprite = new THREE.Mesh(
-				new THREE.SphereGeometry(rad, 7, 7),
-				spriteMaterial);
-		// position the sprite at Z = -6000
-		sprite.position.x = spriteX;
-		sprite.position.y = spriteY;
-		sprite.position.z = -6000;
-		//sprite.isPoints = isPoints;
+		// create the sphere model
+		var sphere = new THREE.Mesh(
+				new THREE.SphereGeometry(rad, sphereQuality, sphereQuality),
+				sphereMaterial);
+		// position the sphere at Z = -6000
+		sphere.position.x = sphereX;
+		sphere.position.y = sphereY;
+		sphere.position.z = -6000;
+		sphere.rotation.z = 15;
+		sphere.rotation.x = 15;
+		sphere.rad = rad;
+		//sphere.isPoints = isPoints;
 
-		// add the new sprite to the array
-		sprites.push(sprite);
-		// add sprite to the scene
-		scene.add(sprite);
+		// add the new sphere to the array
+		spheres.push(sphere);
+		// add sphere to the scene
+		scene.add(sphere);
 	}
 }
 
-// Moves sprites
-function moveSprites() {
-	for (var i = 0; i < sprites.length; i++) {
-		sprites[i].position.z += spriteSpeed;
-		// get rid of sprites that have flown past camera
-		if (sprites[i].position.z >= 500) {
-			sprites.splice(i, 1);
+// Moves spheres while checking for collisions
+function moveSpheres() {
+	for (var i = 0; i < spheres.length; i++) {
+		spheres[i].position.z += sphereSpeed;
+		// check this sphere for collision with player
+		if (collisionCheck(spheres[i]))
+			collisionDetected = true;
+		// get rid of spheres that have flown past camera
+		if (spheres[i].position.z >= 500) {
+			spheres.splice(i, 1);
 		}
 	}
+}
+
+// Returns true if playerModel is colliding with 
+// obstacle, false otherwise. Pretty unsophisticated
+// for now. Need to enhance with raycasting. Works
+// surprisingly well in meantime, however.
+function collisionCheck(sphereObstacle) {
+	var simpleDist = playerModel.position.distanceTo(sphereObstacle.position);
+	var magicNum; // magic number (falsely) representing dist from player center to (any) player edge
+	magicNum = ((playerDepth/2) + (playerWidth/2) + (playerHeight/2)) / 3;
+	var gapDist = simpleDist - sphereObstacle.rad - magicNum;
+	console.log(gapDist);
+	return (gapDist <= 0);
+}
+
+// Freezes game in current state
+function gameOver() {
+	playerDX = 0;
+	playerDY = 0;
+	playerDZ = 0;
+
+	isGameOver = true;
 }
