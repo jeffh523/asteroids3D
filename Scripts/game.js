@@ -33,6 +33,7 @@ var playerModel, spriteModel;
 var score = 0;
 var collisionDetected = false;
 var isGameOver = false;
+var gameOverTxt;
 
 ///////////////////////////////////////////////////////
 
@@ -125,6 +126,9 @@ function draw() {
 		if (collisionDetected)
 			gameOver();
 	}
+	else {
+		moveGameOverTxt();
+	}
 }
 
 //Handles Key Events to update playerDX, DY, DZ
@@ -204,7 +208,7 @@ function generateSprites() {
 		// some default initial values for sprites 
 		var isPoints = false;
 		var spriteMaterial = new THREE.MeshLambertMaterial(
-				{color: 0xCC5200}); // Orange/Brown
+				{color: 0x663300}); // Orange/Brown
 		var spriteGeom = new THREE.SphereGeometry(rad, spriteQuality, spriteQuality);
 
 		// assign some sprites to be points instead of asteroids.
@@ -240,15 +244,18 @@ function generateSprites() {
 // Moves sprites while checking for collisions
 function moveSprites() {
 	for (var i = 0; i < sprites.length; i++) {
-		sprites[i].position.z += spriteSpeed;
+		var sprite = sprites[i];
+		sprite.position.z += spriteSpeed;
 		// check this sprite for collision with player
-		if (collisionCheck(sprites[i]))
+		if (collisionCheck(sprite))
 			collisionDetected = true;
 		// make asteroids rotate
-		if (!sprites[i].isPoints)
-			sprites[i].rotation.x += Math.PI * 5/180;
+		if (!sprite.isPoints) 
+			sprite.rotation.x += Math.PI * 2/180;
+		else  // make point rings spin
+			sprite.rotation.z += Math.PI * 4/180;
 		// get rid of sprites that have flown past camera
-		if (sprites[i].position.z >= 500) {
+		if (sprite.position.z >= 500) {
 			sprites.splice(i, 1);
 		}
 	}
@@ -283,7 +290,42 @@ function collisionCheck(sprite) {
 	}
 }
 
-// Freezes game in current state
+// Freezes game in current state,
+// displays "Game Over" message
 function gameOver() {
 	isGameOver = true;
+
+	var materialFront = new THREE.MeshBasicMaterial(
+		{color: 0xFFFF00});
+	var materialSide = new THREE.MeshBasicMaterial(
+		{color: 0x000000});
+	var materialArray = [materialFront, materialSide];
+	var gameOverMaterial = new THREE.MeshFaceMaterial(
+		materialArray);
+	var gameOverGeom = new THREE.TextGeometry( "Game Over", {
+			size: 20,
+			curveSegments: 5,
+			font: "helvetiker",
+			weight: "normal",
+			style: "normal",
+			bevelThickness: 1,
+			bevelSize: 1,
+			bevelEnabled: true,
+			material: 0,
+			extrudeMaterial: 1
+		});
+
+	gameOverTxt = new THREE.Mesh(
+		gameOverGeom, gameOverMaterial);
+	console.log(gameOverTxt);
+
+	scene.add(gameOverTxt);
+	gameOverTxt.position.set(-70, 80, 200);
+
+}
+
+// moves "Game Over" text in -Z direction
+// Star Wars style
+function moveGameOverTxt() {
+	gameOverTxt.position.z -= .5;
 }
