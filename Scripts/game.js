@@ -17,47 +17,18 @@ var playerSpeed = 1.7,
 	playerQuality = 5,
 	playerDX = 0,  // left + right
 	playerDY = 0,  // up + down
-	playerDZ = 0;  // forwards + backwards
+	playerDZ = 0,  // forwards + backwards
+	playerRotZ = 0; // Change in Z-axis rotation (barrel roll)
 
-var spheres = [],
-	sphereQuality = 7;
-	sphereMinRadius = 20,
-	sphereMaxRadius = 150,
-	sphereSpeed = 60;
+var sprites = [],
+	spriteQuality = 7;
+	spriteMinRadius = 20,
+	spriteMaxRadius = 150,
+	spriteSpeed = 60;
 
-var playerModel, sphereModel;
+var torusTubeDiameter = 15;
 
-// one vector for each direction, for collision detection
-var rays = [   
-		new THREE.Vector3(0, 0, 1),   // +Z
-		//new THREE.Vector3(1, 0, 1),
-		new THREE.Vector3(1, 0, 0),   // >
-		//new THREE.Vector3(1, 0, -1),
-		new THREE.Vector3(0, 0, -1),  // -Z
-		//new THREE.Vector3(-1, 0, -1),
-		new THREE.Vector3(-1, 0, 0),  // <
-		//new THREE.Vector3(-1, 0, 1),
-		//new THREE.Vector3(0, 1, 1),
-		//new THREE.Vector3(1, 1, 1),
-		//new THREE.Vector3(1, 1, 0),  // 10
-		//new THREE.Vector3(1, 1, -1),
-		//new THREE.Vector3(0, 1, -1),
-		//new THREE.Vector3(-1, 1, -1),
-		//new THREE.Vector3(-1, 1, 0),
-		//new THREE.Vector3(-1, 1, 1),
-		new THREE.Vector3(0, 1, 0),    // ^
-		//new THREE.Vector3(1, -1, 0),
-		//new THREE.Vector3(0, -1, 1),
-		//new THREE.Vector3(1, -1, 1),
-		//new THREE.Vector3(1, -1, 0),   // 20
-		//new THREE.Vector3(1, -1, -1),
-		//new THREE.Vector3(0, -1, -1),
-		//new THREE.Vector3(-1, -1, -1),
-		//new THREE.Vector3(-1, -1, 0),
-		//new THREE.Vector3(-1, -1, 1),
-		new THREE.Vector3(0, -1, 0)   // \/
-	];
-var caster = new THREE.Raycaster();
+var playerModel, spriteModel;
 
 var score = 0;
 var collisionDetected = false;
@@ -115,13 +86,11 @@ function createScene() {
 			playerQuality,
 			playerQuality),
 		playerMaterial);
-	console.log("Player vertices: ", playerModel.geometry.vertices);
 
 	scene.add(playerModel);
 	playerModel.position.x = 0;
 	playerModel.position.y = 0;
 	playerModel.position.z = 50;
-	console.log("Player position is " , playerModel.position);
 
 	// set up and position a point of light
 	pointLight1 = new THREE.PointLight(0xF8D898);
@@ -149,10 +118,10 @@ function draw() {
 	renderer.render(scene, camera);
 
 	if (!isGameOver) {
-		generateSpheres();
+		generateSprites();
 		handleKey();  // updates player direction
 		movePlayer(); // moves player in direction
-		moveSpheres(); // moves spheres if no collisions
+		moveSprites(); // moves sprites if no collisions
 		if (collisionDetected)
 			gameOver();
 	}
@@ -160,7 +129,7 @@ function draw() {
 
 //Handles Key Events to update playerDX, DY, DZ
 function handleKey() {
-	// handle left/right
+	// handle left/right move
 	if (Key.isDown(Key.A)) {
 		playerDX = -1;
 	} 
@@ -170,7 +139,7 @@ function handleKey() {
 	else {
 		playerDX = 0;
 	}
-	// handle up/down
+	// handle up/down move
 	if (Key.isDown(Key.W)) {
 		playerDY = 1;
 	}
@@ -180,47 +149,29 @@ function handleKey() {
 	else {
 		playerDY = 0;
 	}
-	
-	/*
-	TODO: 
-	// handle forward/backward
-	if (Key.isDown(Key.I)) {
-		playerDZ = -1;
-	}
-	else if (Key.isDown(Key.K)) {var randomnumber = Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
-		playerDZ = 1;
-	}
-	else {
-		playerDZ = 0;
-	}
-	*/
-
 }
 
 // Updates playerModel position based on delta X, Y, Z
 function movePlayer() {
-	
 	// rotate playerModel based on direction
-	// Rotate for DX movement
-	if (!playerDX == 0) {
-		if (playerDX > 0) {
-			playerModel.rotation.y = Math.PI * -15/180;
-		}
-		else {
+	
+	// Rotate for DX movement{
+	if (playerDX > 0) {
+		playerModel.rotation.y = Math.PI * -15/180;
+	}
+	else if (playerDX < 0) {
 			playerModel.rotation.y = Math.PI * 15/180;
-		}
 	}
 	else {  // DX is 0
 		playerModel.rotation.y = 0;
 	}
+
 	// Rotate for DY movement
-	if (!playerDY == 0) {
-		if (playerDY > 0) {
-			playerModel.rotation.x = Math.PI * 15/180;
-		}
-		else {
-			playerModel.rotation.x = Math.PI * -15/180;
-		}
+	if (playerDY > 0) {
+		playerModel.rotation.x = Math.PI * 15/180;
+	}
+	else if (playerDY < 0) {
+		playerModel.rotation.x = Math.PI * -15/180;
 	}
 	else {  // DY is 0
 		playerModel.rotation.x = 0;
@@ -231,91 +182,108 @@ function movePlayer() {
 	playerModel.position.z += (playerDZ * playerSpeed);
 }
 
-// Generates asteroids + other spheres at random
-function generateSpheres() {
+// Generates asteroids + other sprites at random
+function generateSprites() {
 	// generate random number 1 - 100
 	var randNum = Math.floor(Math.random() * 
 		(100 - 1 + 1)) + 1;
 
-	// if randNum <= 40, generate a new sphere
+	// if randNum <= 40, generate a new sprite
 	if (randNum <= 40) {
-		// generate random X for the sphere
-		var sphereX = Math.floor(Math.random() * 
+		// generate random X for the sprite
+		var spriteX = Math.floor(Math.random() * 
 			(1000 - (-1000) + 1)) + (-1000);
-		// generate random Y for the sphere
-		var sphereY = Math.floor(Math.random() * 
+		// generate random Y for the sprite
+		var spriteY = Math.floor(Math.random() * 
 			(1000 - (-1000) + 1)) + (-1000);
-		// generate random radius for sphere model
+		// generate random radius for sprite model
 		var rad = Math.floor(Math.random() * 
-			(sphereMaxRadius - sphereMinRadius + 1)) 
-			+ sphereMinRadius;
+			(spriteMaxRadius - spriteMinRadius + 1)) 
+			+ spriteMinRadius;
 		
-		// assign some smaller spheres to be points instead of asteroids
+		// some default initial values for sprites 
 		var isPoints = false;
-		var sphereMaterial = new THREE.MeshLambertMaterial(
+		var spriteMaterial = new THREE.MeshLambertMaterial(
 				{color: 0xCC5200}); // Orange/Brown
-		// criteria for sphere to be points:
-		if (randNum % 2 == 0 && rad <= sphereMaxRadius - 20 &&
-			rad >= sphereMinRadius + 20 &&
-			sphereY < 300 && sphereY > -100 &&
-			sphereX < 200 && sphereX > -200) {
-			sphereMaterial = new THREE.MeshLambertMaterial(
-				{color: 0xFF0066});  // pink
+		var spriteGeom = new THREE.SphereGeometry(rad, spriteQuality, spriteQuality);
+
+		// assign some sprites to be points instead of asteroids.
+		// Criteria for a sprite to be points:
+		if (randNum % 2 == 0 && rad <= spriteMaxRadius - 10 &&
+			rad >= spriteMinRadius + 30 &&
+			spriteY < 300 && spriteY > -100 &&
+			spriteX < 200 && spriteX > -200) {
+			spriteMaterial = new THREE.MeshLambertMaterial(
+				{color: 0xFF0066});  // Pink
 			isPoints = true;
+			spriteGeom = new THREE.TorusGeometry(rad, torusTubeDiameter, 12, 12, Math.PI*2); // Torus
 		}
 
-		// create the sphere model
-		var sphere = new THREE.Mesh(
-				new THREE.SphereGeometry(rad, sphereQuality, sphereQuality),
-				sphereMaterial);
-		// position the sphere at Z = -6000
-		sphere.position.x = sphereX;
-		sphere.position.y = sphereY;
-		sphere.position.z = -6000;
-		sphere.rotation.z = 15;
-		sphere.rotation.x = 15;
-		sphere.rad = rad;
-		//sphere.isPoints = isPoints;
+		// create the sprite model
+		var sprite = new THREE.Mesh(
+				spriteGeom,
+				spriteMaterial);
+		// position the sprite at Z = -6000
+		sprite.position.x = spriteX;
+		sprite.position.y = spriteY;
+		sprite.position.z = -6000;
+		sprite.rad = rad; // this variable is for collisionCheck
+		sprite.isPoints = isPoints;
 
-		// add the new sphere to the array
-		spheres.push(sphere);
-		// add sphere to the scene
-		scene.add(sphere);
+		// add the new sprite to the array
+		sprites.push(sprite);
+		// add sprite to the scene
+		scene.add(sprite);
 	}
 }
 
-// Moves spheres while checking for collisions
-function moveSpheres() {
-	for (var i = 0; i < spheres.length; i++) {
-		spheres[i].position.z += sphereSpeed;
-		// check this sphere for collision with player
-		if (collisionCheck(spheres[i]))
+// Moves sprites while checking for collisions
+function moveSprites() {
+	for (var i = 0; i < sprites.length; i++) {
+		sprites[i].position.z += spriteSpeed;
+		// check this sprite for collision with player
+		if (collisionCheck(sprites[i]))
 			collisionDetected = true;
-		// get rid of spheres that have flown past camera
-		if (spheres[i].position.z >= 500) {
-			spheres.splice(i, 1);
+		// make asteroids rotate
+		if (!sprites[i].isPoints)
+			sprites[i].rotation.x += Math.PI * 5/180;
+		// get rid of sprites that have flown past camera
+		if (sprites[i].position.z >= 500) {
+			sprites.splice(i, 1);
 		}
 	}
 }
 
 // Returns true if playerModel is colliding with 
-// obstacle, false otherwise. Pretty unsophisticated
+// sprite, false otherwise. Pretty unsophisticated
 // for now. Need to enhance with raycasting. Works
 // surprisingly well in meantime, however.
-function collisionCheck(sphereObstacle) {
-	var simpleDist = playerModel.position.distanceTo(sphereObstacle.position);
-	var magicNum; // magic number (falsely) representing dist from player center to (any) player edge
-	magicNum = ((playerDepth/2) + (playerWidth/2) + (playerHeight/2)) / 3;
-	var gapDist = simpleDist - sphereObstacle.rad - magicNum;
-	console.log(gapDist);
-	return (gapDist <= 0);
+function collisionCheck(sprite) {
+	// case where sprite is an asteroid
+	if (!sprite.isPoints) {
+		var simpleDist = playerModel.position.distanceTo(sprite.position);
+		var magicNum; // magic number (quasi-accurately) representing dist from player center to (any) player edge
+		magicNum = ((playerDepth/2) + (playerWidth/2) + (playerHeight/2)) / 3;
+		var gapDist = simpleDist - sprite.rad - magicNum;
+		return (gapDist <= 0);
+	}
+	// case where sprite is points (torus)
+	else {
+		// collision with torus can only occur when
+		// diff b/w torus.z and player.z is < playerDepth/2
+		var zDiff = Math.abs(sprite.position.z - playerModel.position.z);
+		if (zDiff > playerDepth / 2)
+			return false;
+		else {
+			var simpleDist = playerModel.position.distanceTo(sprite.position);
+
+			return (simpleDist + playerWidth/2 > sprite.rad - torusTubeDiameter/2 &&
+								simpleDist - playerWidth/2 < sprite.rad + torusTubeDiameter/2);
+		}
+	}
 }
 
 // Freezes game in current state
 function gameOver() {
-	playerDX = 0;
-	playerDY = 0;
-	playerDZ = 0;
-
 	isGameOver = true;
 }
