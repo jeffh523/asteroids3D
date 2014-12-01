@@ -11,8 +11,8 @@ var renderer, scene, camera, pointLight1, pointLight2, spotLight;
 
 // set up other global vars
 var playerSpeed = 1.7,
-	playerWidth = 15,
-	playerHeight = 15,
+	playerWidth = 12,
+	playerHeight = 12,
 	playerDepth = 30,
 	playerQuality = 5,
 	playerDX = 0,  // left + right
@@ -77,15 +77,25 @@ function createScene() {
 	var playerMaterial = 
 		new THREE.MeshLambertMaterial(
 			{color: 0x0047B2}); //BLUE 
-
-	playerModel = new THREE.Mesh(
-		new THREE.BoxGeometry(
+	var playerGeom = new THREE.BoxGeometry(
 			playerWidth,
 			playerHeight,
 			playerDepth,
 			playerQuality,
 			playerQuality,
-			playerQuality),
+			playerQuality);
+	var playerGeomWing = new THREE.BoxGeometry(
+			playerWidth*1.75,
+			playerHeight*.6,
+			playerDepth/4,
+			playerQuality,
+			playerQuality,
+			playerQuality);
+	// Merge the two player geometries into playerGeom
+	THREE.GeometryUtils.merge(playerGeom, playerGeomWing);
+
+	playerModel = new THREE.Mesh(
+		playerGeom,
 		playerMaterial);
 
 	scene.add(playerModel);
@@ -134,52 +144,53 @@ function draw() {
 //Handles Key Events to update playerDX, DY, DZ
 function handleKey() {
 	// handle left/right move
-	if (Key.isDown(Key.A)) {
+	if (Key.isDown(Key.A))
 		playerDX = -1;
-	} 
-	else if (Key.isDown(Key.D)) {
+	else if (Key.isDown(Key.D))
 		playerDX = 1;
-	}
-	else {
+	else 
 		playerDX = 0;
-	}
 	// handle up/down move
-	if (Key.isDown(Key.W)) {
+	if (Key.isDown(Key.W))
 		playerDY = 1;
-	}
-	else if (Key.isDown(Key.S)) {
+	else if (Key.isDown(Key.S)) 
 		playerDY = -1;
-	}
-	else {
+	else 
 		playerDY = 0;
-	}
+	// handle roll left/right
+	if (Key.isDown(Key.COMMA))
+		playerRotZ = -1;
+	else if (Key.isDown(Key.PERIOD)) 
+		playerRotZ = 1;
+	else
+		playerRotZ = 0;
 }
 
 // Updates playerModel position based on delta X, Y, Z
 function movePlayer() {
 	// rotate playerModel based on direction
 	
-	// Rotate for DX movement{
-	if (playerDX > 0) {
+	// Rotate for DX
+	if (playerDX > 0)
 		playerModel.rotation.y = Math.PI * -15/180;
-	}
-	else if (playerDX < 0) {
+	else if (playerDX < 0)
 			playerModel.rotation.y = Math.PI * 15/180;
-	}
-	else {  // DX is 0
+	else  // DX is 0
 		playerModel.rotation.y = 0;
-	}
 
-	// Rotate for DY movement
-	if (playerDY > 0) {
+	// Rotate for DY
+	if (playerDY > 0)
 		playerModel.rotation.x = Math.PI * 15/180;
-	}
-	else if (playerDY < 0) {
+	else if (playerDY < 0)
 		playerModel.rotation.x = Math.PI * -15/180;
-	}
-	else {  // DY is 0
+	else  // DY is 0
 		playerModel.rotation.x = 0;
-	}
+
+	// Rotate for playerRotZ roll
+	if (playerRotZ > 0)
+		playerModel.rotation.z -= Math.PI * 3/180;
+	else if (playerRotZ < 0)
+		playerModel.rotation.z += Math.PI * 3/180;
 
 	playerModel.position.x += (playerDX * playerSpeed);
 	playerModel.position.y += (playerDY * playerSpeed);
