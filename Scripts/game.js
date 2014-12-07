@@ -88,9 +88,9 @@ function createScene() {
 			playerQuality,
 			playerQuality);
 	var playerGeomWing = new THREE.BoxGeometry(
-			playerWidth*1.75,
-			playerHeight*.6,
-			playerDepth/4,
+			playerWidth*1.85,
+			playerHeight*.5,
+			playerDepth/2,
 			playerQuality,
 			playerQuality,
 			playerQuality);
@@ -350,12 +350,12 @@ function gameOver() {
 	var materialArray = [materialFront, materialSide];
 	var gameOverMaterial = new THREE.MeshFaceMaterial(
 		materialArray);
-	var gameOverGeom = new THREE.TextGeometry( "Game Over", {
+	var gameOverGeom = new THREE.TextGeometry('GAME OVER', {
 			size: 20,
 			curveSegments: 5,
-			font: "helvetiker",
-			weight: "normal",
-			style: "normal",
+			font: 'helvetiker',
+			weight: 'normal',
+			style: 'normal',
 			bevelThickness: 1,
 			bevelSize: 1,
 			bevelEnabled: true,
@@ -365,7 +365,6 @@ function gameOver() {
 
 	gameOverTxt = new THREE.Mesh(
 		gameOverGeom, gameOverMaterial);
-	console.log(gameOverTxt);
 
 	scene.add(gameOverTxt);
 	gameOverTxt.position.set(-70, 80, 200);
@@ -386,6 +385,7 @@ function updateScore() {
 					document.getElementById('msg').innerHTML = '';
 				},
 				1000);
+			// reset var
 			isGoingThroughRing = false;
 		}
 	}
