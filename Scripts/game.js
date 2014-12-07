@@ -32,9 +32,11 @@ var playerModel, spriteModel;
 
 var score = 0,
 	collisionDetected = false,
+	isGoingThroughRing = false,
 	isGameOver = false;
 var	gameOverTxt;
-var hud;
+var scoreTxt,  
+	msg;
 
 ///////////////////////////////////////////////////////
 
@@ -122,20 +124,35 @@ function createScene() {
 	pointLight2.distance = 20000;
 	scene.add(pointLight2);
 
-	// Create a hud for showing the score
-	hud = document.createElement('hud');
-	hud.style.position = 'absolute';
-	hud.style.width = 60;
-	hud.style.height = 30;
-	hud.innerHTML = 'Score';
-	hud.style.top = 50 + 'px';
-	hud.style.left = 50 + 'px';
-	hud.style.color = 'white';
-	hud.style.fontSize = 28 + 'px';
-	hud.style.fontWeight = 'bold';
-	hud.style.padding = 10 + 'px';
-	hud.setAttribute('id', 'hud');
-	document.body.appendChild(hud);
+	// Create a div for showing the score
+	scoreTxt = document.createElement('scoreTxt');
+	scoreTxt.style.position = 'absolute';
+	scoreTxt.style.width = 60;
+	scoreTxt.style.height = 30;
+	scoreTxt.innerHTML = 'Score';
+	scoreTxt.style.top = (HEIGHT * 0.9) + 'px';
+	scoreTxt.style.left = (WIDTH * 0.43) + 'px';
+	scoreTxt.style.color = 'white';
+	scoreTxt.style.fontSize = 32 + 'px';
+	scoreTxt.style.fontWeight = 'bold';
+	scoreTxt.style.padding = 10 + 'px';
+	scoreTxt.setAttribute('id', 'scoreTxt');
+	document.body.appendChild(scoreTxt);
+
+	// Create a div for showing "+ 500" when going through ring
+	msg = document.createElement('msg');
+	msg.style.position = 'absolute';
+	msg.style.width = 60;
+	msg.style.height = 30;
+	msg.innerHTML = '';
+	msg.style.top = (HEIGHT * 0.07) + 'px';
+	msg.style.left = (WIDTH * 0.43) + 'px';
+	msg.style.color = 'white';
+	msg.style.fontSize = 40 + 'px';
+	msg.style.fontWeight = 'bold';
+	msg.style.padding = 10 + 'px';
+	msg.setAttribute('id', 'msg');
+	document.body.appendChild(msg);
 }
 
 function draw() {	
@@ -316,7 +333,7 @@ function collisionCheck(sprite) {
 								simpleDist - playerWidth/2 < sprite.rad + torusTubeDiameter/2);
 			// boost score if player going through ring
 			if (!collision && simpleDist < sprite.rad)
-				score += 500;
+				isGoingThroughRing = true;
 		}
 	}
 }
@@ -355,11 +372,24 @@ function gameOver() {
 
 }
 
-// updates score in the hud hud
+// updates score in the scoreTxt scoreTxt
 function updateScore() {
-	if (!isGameOver)
+	if (!isGameOver) {
 		score++;
-	document.getElementById('hud').innerHTML = "Score: " + score;
+		if (isGoingThroughRing) {
+			score += 500;
+			// write "+ 500" on the msg div
+			document.getElementById('msg').innerHTML = '+ 500!';
+			// unwrite msg
+			setTimeout(
+				function() {
+					document.getElementById('msg').innerHTML = '';
+				},
+				1000);
+			isGoingThroughRing = false;
+		}
+	}
+	document.getElementById('scoreTxt').innerHTML = "Score: " + score;
 }
 
 // moves "Game Over" text in -Z direction
