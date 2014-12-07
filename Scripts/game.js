@@ -30,10 +30,11 @@ var torusTubeDiameter = 15;
 
 var playerModel, spriteModel;
 
-var score = 0;
-var collisionDetected = false;
-var isGameOver = false;
-var gameOverTxt;
+var score = 0,
+	collisionDetected = false,
+	isGameOver = false;
+var	gameOverTxt;
+var hud;
 
 ///////////////////////////////////////////////////////
 
@@ -120,6 +121,21 @@ function createScene() {
 	pointLight2.intensity = 3;
 	pointLight2.distance = 20000;
 	scene.add(pointLight2);
+
+	// Create a hud for showing the score
+	hud = document.createElement('hud');
+	hud.style.position = 'absolute';
+	hud.style.width = 60;
+	hud.style.height = 30;
+	hud.innerHTML = 'Score';
+	hud.style.top = 50 + 'px';
+	hud.style.left = 50 + 'px';
+	hud.style.color = 'white';
+	hud.style.fontSize = 28 + 'px';
+	hud.style.fontWeight = 'bold';
+	hud.style.padding = 10 + 'px';
+	hud.setAttribute('id', 'hud');
+	document.body.appendChild(hud);
 }
 
 function draw() {	
@@ -139,6 +155,7 @@ function draw() {
 	else {
 		moveGameOverTxt();
 	}
+	updateScore();
 }
 
 //Handles Key Events to update playerDX, DY, DZ
@@ -188,9 +205,9 @@ function movePlayer() {
 
 	// Rotate for playerRotZ roll
 	if (playerRotZ > 0)
-		playerModel.rotation.z -= Math.PI * 3/180;
+		playerModel.rotation.z -= Math.PI * 4/180;
 	else if (playerRotZ < 0)
-		playerModel.rotation.z += Math.PI * 3/180;
+		playerModel.rotation.z += Math.PI * 4/180;
 
 	playerModel.position.x += (playerDX * playerSpeed);
 	playerModel.position.y += (playerDY * playerSpeed);
@@ -295,8 +312,11 @@ function collisionCheck(sprite) {
 		else {
 			var simpleDist = playerModel.position.distanceTo(sprite.position);
 
-			return (simpleDist + playerWidth/2 > sprite.rad - torusTubeDiameter/2 &&
+			var collision = (simpleDist + playerWidth/2 > sprite.rad - torusTubeDiameter/2 &&
 								simpleDist - playerWidth/2 < sprite.rad + torusTubeDiameter/2);
+			// boost score if player going through ring
+			if (!collision && simpleDist < sprite.rad)
+				score += 500;
 		}
 	}
 }
@@ -333,6 +353,13 @@ function gameOver() {
 	scene.add(gameOverTxt);
 	gameOverTxt.position.set(-70, 80, 200);
 
+}
+
+// updates score in the hud hud
+function updateScore() {
+	if (!isGameOver)
+		score++;
+	document.getElementById('hud').innerHTML = "Score: " + score;
 }
 
 // moves "Game Over" text in -Z direction
