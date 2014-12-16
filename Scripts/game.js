@@ -132,10 +132,14 @@ function createScene() {
 	scoreTxt.innerHTML = 'Score';
 	scoreTxt.style.top = (HEIGHT * 0.9) + 'px';
 	scoreTxt.style.left = (WIDTH * 0.43) + 'px';
+	scoreTxt.style.backgroundColor = '#3333FF';
 	scoreTxt.style.color = 'white';
+	scoreTxt.style.textShadow = '-1px -1px 0 black ,1px -1px 0 black';
+	scoreTxt.style.border = '2px solid white';
+	scoreTxt.style.borderRadius = '10px'
 	scoreTxt.style.fontSize = 32 + 'px';
 	scoreTxt.style.fontWeight = 'bold';
-	scoreTxt.style.padding = 10 + 'px';
+	scoreTxt.style.padding = '8px 20px';
 	scoreTxt.setAttribute('id', 'scoreTxt');
 	document.body.appendChild(scoreTxt);
 
@@ -146,7 +150,7 @@ function createScene() {
 	msg.style.height = 30;
 	msg.innerHTML = '';
 	msg.style.top = (HEIGHT * 0.07) + 'px';
-	msg.style.left = (WIDTH * 0.43) + 'px';
+	msg.style.left = (WIDTH * 0.46) + 'px';
 	msg.style.color = 'white';
 	msg.style.fontSize = 40 + 'px';
 	msg.style.fontWeight = 'bold';
@@ -263,9 +267,9 @@ function generateSprites() {
 			spriteY < 300 && spriteY > -100 &&
 			spriteX < 200 && spriteX > -200) {
 			spriteMaterial = new THREE.MeshLambertMaterial(
-				{color: 0xFF0066});  // Pink
+				{color: 0xFF1975});  // Pink
 			isPoints = true;
-			spriteGeom = new THREE.TorusGeometry(rad, torusTubeDiameter, 12, 12, Math.PI*2); // Torus
+			spriteGeom = new THREE.TorusGeometry(rad, torusTubeDiameter, 20, 20, Math.PI*2); // Torus
 		}
 
 		// create the sprite model
@@ -298,7 +302,7 @@ function moveSprites() {
 		if (!sprite.isPoints) 
 			sprite.rotation.x += Math.PI * 2/180;
 		else  // make point rings spin
-			sprite.rotation.z += Math.PI * 4/180;
+			sprite.rotation.z += Math.PI * 3/180;
 		// get rid of sprites that have flown past camera
 		if (sprite.position.z >= 500) {
 			sprites.splice(i, 1);
@@ -334,6 +338,8 @@ function collisionCheck(sprite) {
 			// boost score if player going through ring
 			if (!collision && simpleDist < sprite.rad)
 				isGoingThroughRing = true;
+
+			return collision;
 		}
 	}
 }
@@ -371,7 +377,7 @@ function gameOver() {
 
 }
 
-// updates score in the scoreTxt scoreTxt
+// updates score in the scoreTxt div
 function updateScore() {
 	if (!isGameOver) {
 		score++;
