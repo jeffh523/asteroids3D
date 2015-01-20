@@ -10,7 +10,7 @@
 var renderer, scene, camera, pointLight1, pointLight2, spotLight;
 
 // set up other global vars
-var playerSpeed = 1.7,
+var playerSpeed = 1.8,
 	playerWidth = 12,
 	playerHeight = 12,
 	playerDepth = 30,
@@ -24,7 +24,7 @@ var sprites = [],
 	spriteQuality = 7;
 	spriteMinRadius = 20,
 	spriteMaxRadius = 150,
-	spriteSpeed = 60;
+	spriteSpeed = 65;
 
 var torusTubeDiameter = 15;
 
@@ -36,7 +36,8 @@ var score = 0,
 	isGameOver = false;
 var	gameOverTxt;
 var scoreTxt,  
-	msg;
+	msg,
+	instructions;
 
 ///////////////////////////////////////////////////////
 
@@ -79,7 +80,7 @@ function createScene() {
 	// set up and position player
 	var playerMaterial = 
 		new THREE.MeshLambertMaterial(
-			{color: 0x0047B2}); //BLUE 
+			{color: 0x002966}); //BLUE 
 	var playerGeom = new THREE.BoxGeometry(
 			playerWidth,
 			playerHeight,
@@ -130,7 +131,7 @@ function createScene() {
 	scoreTxt.style.width = 60;
 	scoreTxt.style.height = 30;
 	scoreTxt.innerHTML = 'Score';
-	scoreTxt.style.top = (HEIGHT * 0.9) + 'px';
+	scoreTxt.style.top = (HEIGHT * 0.88) + 'px';
 	scoreTxt.style.left = (WIDTH * 0.43) + 'px';
 	scoreTxt.style.backgroundColor = '#3333FF';
 	scoreTxt.style.color = 'white';
@@ -139,7 +140,7 @@ function createScene() {
 	scoreTxt.style.borderRadius = '10px'
 	scoreTxt.style.fontSize = 32 + 'px';
 	scoreTxt.style.fontWeight = 'bold';
-	scoreTxt.style.padding = '8px 20px';
+	scoreTxt.style.padding = '12px 30px';
 	scoreTxt.setAttribute('id', 'scoreTxt');
 	document.body.appendChild(scoreTxt);
 
@@ -157,6 +158,26 @@ function createScene() {
 	msg.style.padding = 10 + 'px';
 	msg.setAttribute('id', 'msg');
 	document.body.appendChild(msg);
+
+	// Create a div for showing the score
+	instructions = document.createElement('instructions');
+	instructions.style.position = 'absolute';
+	instructions.style.width = 50;
+	instructions.style.height = 50;
+	instructions.innerHTML = 'Move: W, A, S, D' + '<br/>' 
+								+ 'Roll Left/Right: K, L';
+	instructions.style.top = (HEIGHT * 0.76) + 'px';
+	instructions.style.left = (WIDTH * 0.03) + 'px';
+	instructions.style.color = 'white';
+	instructions.style.border = '1px solid white';
+	instructions.style.borderRadius = '10px'
+	instructions.style.fontSize = 24 + 'px';
+	instructions.style.padding = '20px 20px';
+	instructions.style.textAlign = 'center';
+	instructions.setAttribute('id', 'instructions');
+	document.body.appendChild(instructions);
+
+
 }
 
 function draw() {	
@@ -166,6 +187,9 @@ function draw() {
 	renderer.render(scene, camera);
 
 	if (!isGameOver) {
+		if (score > 1000) {
+			instructions.style.visibility = 'hidden';
+		}
 		generateSprites();
 		handleKey();  // updates player direction
 		movePlayer(); // moves player in direction
@@ -175,6 +199,10 @@ function draw() {
 	}
 	else {
 		moveGameOverTxt();
+		instructions.style.visibility = 'visible';
+		instructions.innerHTML = 'REFRESH TO PLAY AGAIN' + '<br/><br/>'
+								+ 'Move: W, A, S, D' + '<br/>' 
+								+ 'Roll Left/Right: K, L' + '<br/>';
 	}
 	updateScore();
 }
@@ -196,9 +224,9 @@ function handleKey() {
 	else 
 		playerDY = 0;
 	// handle roll left/right
-	if (Key.isDown(Key.COMMA))
+	if (Key.isDown(Key.K))
 		playerRotZ = -1;
-	else if (Key.isDown(Key.PERIOD)) 
+	else if (Key.isDown(Key.L)) 
 		playerRotZ = 1;
 	else
 		playerRotZ = 0;
@@ -256,8 +284,17 @@ function generateSprites() {
 		
 		// some default initial values for sprites 
 		var isPoints = false;
-		var spriteMaterial = new THREE.MeshLambertMaterial(
-				{color: 0x663300}); // Orange/Brown
+		var color = {color: 0x663300};	// Orange/Brown
+		// randomize asteroid colors!
+		if (randNum > 15 && randNum <= 20)
+			color = {color: 0x4C004C};  // purple
+		else if (randNum > 10 && randNum <= 15)
+			color = {color: 0x00005C};  // dark blue
+		else if (randNum > 5 && randNum <= 10)
+			color = {color: 0x005C1F};  // dark green
+		else if(randNum > 0 && randNum <= 5)
+			color = {color:0x4C0000};   // maroon
+		var spriteMaterial = new THREE.MeshLambertMaterial(color); 
 		var spriteGeom = new THREE.SphereGeometry(rad, spriteQuality, spriteQuality);
 
 		// assign some sprites to be points instead of asteroids.
@@ -267,7 +304,7 @@ function generateSprites() {
 			spriteY < 300 && spriteY > -100 &&
 			spriteX < 200 && spriteX > -200) {
 			spriteMaterial = new THREE.MeshLambertMaterial(
-				{color: 0xFF1975});  // Pink
+				{color: 0x333300});  // Gold
 			isPoints = true;
 			spriteGeom = new THREE.TorusGeometry(rad, torusTubeDiameter, 20, 20, Math.PI*2); // Torus
 		}
