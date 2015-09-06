@@ -25,6 +25,8 @@ var sprites = [],
 	spriteMinRadius = 20,
 	spriteMaxRadius = 150,
 	spriteSpeed = 65;
+	alienSpeed1 = 25;
+	alienSpeed2 = 50;
 
 var torusTubeDiameter = 15;
 
@@ -274,14 +276,19 @@ function generateSprites() {
 		
 		// some default initial values for sprites 
 		var isPoints = false;
+		var isAlien = false;
 		var color = {color: 0x522900};	// Orange/Brown
 		// randomize asteroid colors!
-		if (randNum > 15 && randNum <= 20)
-			color = {color: 0x4C004C};  // purple
+		if (randNum > 25 && randNum <= 30)
+			color = {color: 0x808000};  // yellow
+		else if (randNum > 20 && randNum <= 25)
+			color = {color: 0x003D7A};  // light blue
+		else if (randNum > 15 && randNum <= 20)
+			color = {color: 0xB20047};  // pink
 		else if (randNum > 10 && randNum <= 15)
 			color = {color: 0x00005C};  // dark blue
 		else if (randNum > 5 && randNum <= 10)
-			color = {color: 0x005C1F};  // dark green
+			color = {color: 0x005C1F};  // green
 		else if(randNum > 0 && randNum <= 5)
 			color = {color:0x4C0000};   // maroon
 		var spriteMaterial = new THREE.MeshLambertMaterial(color); 
@@ -299,6 +306,36 @@ function generateSprites() {
 			spriteGeom = new THREE.TorusGeometry(rad, torusTubeDiameter, 12, 12, Math.PI*2); // Torus
 		}
 
+		// assign some sprites to be aliens.
+		if (randNum > 30 &&
+			spriteY < 300 && spriteY > -100 &&
+			spriteX < 200 && spriteX > -200) {
+			isAlien = true;
+			spriteMaterial = new THREE.MeshLambertMaterial(
+				{color: 0x002900});  // dark green
+
+			spriteGeom = new THREE.BoxGeometry(
+				playerWidth*4,
+				playerHeight*4,
+				playerDepth*4,
+				playerQuality,
+				playerQuality,
+				playerQuality);
+			
+			var spriteGeomWing = new THREE.BoxGeometry(
+				playerWidth*1.85*4,
+				playerHeight*.5*4,
+				playerDepth*2,
+				playerQuality,
+				playerQuality,
+				playerQuality);
+
+			rad = playerDepth*2;
+			
+			// Merge the two sprite geometries into spriteGeom
+			THREE.GeometryUtils.merge(spriteGeom, spriteGeomWing);
+		}
+
 		// create the sprite model
 		var sprite = new THREE.Mesh(
 				spriteGeom,
@@ -309,6 +346,7 @@ function generateSprites() {
 		sprite.position.z = -6000;
 		sprite.rad = rad; // this variable is for collisionCheck
 		sprite.isPoints = isPoints;
+		sprite.isAlien = isAlien;
 
 		// add the new sprite to the array
 		sprites.push(sprite);
@@ -321,15 +359,28 @@ function generateSprites() {
 function moveSprites() {
 	for (var i = 0; i < sprites.length; i++) {
 		var sprite = sprites[i];
-		sprite.position.z += spriteSpeed;
+		if (sprite.isAlien) {
+			if (sprite.position.z > -3000) {
+				sprite.position.z += alienSpeed2;
+			}
+			else {
+				sprite.position.z += alienSpeed1;
+			}
+		}
+		else {
+			sprite.position.z += spriteSpeed;
+		}
 		// check this sprite for collision with player
 		if (collisionCheck(sprite))
 			collisionDetected = true;
 		// make asteroids rotate
-		if (!sprite.isPoints) 
+		if (!sprite.isPoints && !sprite.isAlien) 
 			sprite.rotation.x += Math.PI * 2/180;
-		else  // make point rings spin
+		else  if (sprite.isPoints) // make point rings spin
 			sprite.rotation.z += Math.PI * 4/180;
+		else {  // make aliens spin (less fast than rings)
+			sprite.rotation.z -= Math.PI * 1/180;
+		}
 		// get rid of sprites that have flown past camera
 		if (sprite.position.z >= 500) {
 			sprites.splice(i, 1);
@@ -338,10 +389,9 @@ function moveSprites() {
 }
 
 // Returns true if playerModel is colliding with 
-// sprite, false otherwise. Pretty unsophisticated
-// for now. Need to enhance with raycasting. Works
-// surprisingly well in meantime, however.
+// sprite, false otherwise. Quasi-accurate. 
 function collisionCheck(sprite) {
+	// TODO: implement collision checks for aliens
 	// case where sprite is an asteroid
 	if (!sprite.isPoints) {
 		var simpleDist = playerModel.position.distanceTo(sprite.position);
@@ -362,7 +412,7 @@ function collisionCheck(sprite) {
 
 			var collision = (simpleDist + playerWidth/2 > sprite.rad - torusTubeDiameter/2 &&
 								simpleDist - playerWidth/2 < sprite.rad + torusTubeDiameter/2);
-			// boost score if player going through ring
+			// activate flag if player going through ring
 			if (!collision && simpleDist < sprite.rad)
 				isGoingThroughRing = true;
 
